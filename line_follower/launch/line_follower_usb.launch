@@ -1,0 +1,54 @@
+<launch>
+  <!-- 카메라 (usb_cam) -->
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
+    <param name="video_device" value="/dev/video0"/>
+    <param name="image_width" value="640"/>
+    <param name="image_height" value="480"/>
+    <param name="framerate" value="30"/>
+    <param name="pixel_format" value="yuyv"/>   <!-- mjpeg가 안 될 수 있으니 yuyv -->
+    <param name="io_method" value="mmap"/>
+    <param name="camera_frame_id" value="usb_cam"/>
+  </node>
+
+  <!-- 파라미터 로드 -->
+  <rosparam file="$(find line_follower)/config/params.yaml" command="load"/>
+
+  <!-- 라인 검출 -->
+  <node pkg="line_follower" type="line_detector.py" name="line_detector" output="screen">
+    <remap from="image_raw" to="/usb_cam/image_raw"/>
+  </node>
+
+  <!-- 안전/저속 BTS7960 컨트롤러 -->
+  <node pkg="line_follower" type="motor_controller_bts7960.py" name="motor_controller" output="screen">
+    <!-- 핀 설정(BCM) -->
+    <param name="right_rpwm" value="24"/>
+    <param name="right_lpwm" value="17"/>
+    <param name="right_ren"  value="22"/>
+    <param name="right_len"  value="27"/>
+
+    <param name="left_rpwm"  value="23"/>
+    <param name="left_lpwm"  value="6"/>
+    <param name="left_ren"   value="5"/>
+    <param name="left_len"   value="7"/>
+
+    <!-- 안전/주행 파라미터 -->
+    <param name="pwm_hz" value="1000"/>
+    <param name="deadtime_s" value="0.005"/>
+    <param name="coast_gap_s" value="0.6"/>
+    <param name="min_duty" value="20.0"/>
+    <param name="max_duty" value="60.0"/>
+    <param name="ramp_duty_per_s" value="80.0"/>
+    <param name="safe_timeout" value="0.5"/>
+    <param name="invert_left" value="false"/>
+    <param name="invert_right" value="true"/>
+
+    <!-- 요청 사양: 직진 25%, 회전 50% -->
+    <param name="duty_straight" value="25.0"/>
+    <param name="duty_turn" value="50.0"/>
+  </node>
+
+  <!-- (선택) 디버그 뷰어: GUI 가능할 때만 사용 -->
+  <node pkg="image_view" type="image_view" name="debug_view"
+         args="image:=/line_follower/debug _autosize:=true"/>
+</launch>
+

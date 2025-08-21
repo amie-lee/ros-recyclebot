@@ -1,0 +1,12 @@
+line_detector:
+  base_speed: 0.0      # 모터 안 쓰니 0.0이어도 됨
+  kp: 0.8
+  kd: 0.02
+  use_hsv: false
+  bin_thresh: 120
+  invert: true         # 어두운 선이면 true
+  roi_y_start: 0.6
+  roi_height: 0.3
+  min_area: 500
+  stop_when_lost: true
+

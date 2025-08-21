@@ -1,0 +1,16 @@
+<launch>
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
+    <param name="video_device" value="/dev/video0"/>
+    <param name="framerate"    value="30"/>
+    <param name="image_width"  value="640"/>
+    <param name="image_height" value="480"/>
+    <param name="pixel_format" value="yuyv"/>   <!-- yuyv 확인하셨으니 고정 -->
+    <param name="io_method"    value="mmap"/>
+    <!-- 테스트는 /usb_cam/image_raw 그대로 씁니다(리매핑 안 함) -->
+  </node>
+
+  <node pkg="image_view" type="image_view" name="cam_view" output="screen">
+    <remap from="image" to="/usb_cam/image_raw"/>
+  </node>
+</launch>
+

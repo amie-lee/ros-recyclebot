@@ -1,0 +1,20 @@
+<launch>
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
+    <param name="video_device" value="/dev/video0"/>
+    <param name="image_width" value="640"/>
+    <param name="image_height" value="480"/>
+    <param name="framerate" value="30"/>
+    <param name="pixel_format" value="yuyv"/>
+    <param name="io_method" value="mmap"/>
+  </node>
+
+  <rosparam file="$(find line_follower)/config/params.yaml" command="load"/>
+
+  <node pkg="line_follower" type="line_detector.py" name="line_detector" output="screen">
+    <remap from="image_raw" to="/usb_cam/image_raw"/>
+  </node>
+
+  <node pkg="image_view" type="image_view" name="debug_view"
+        args="image:=/line_follower/debug _autosize:=true"/>
+</launch>
+

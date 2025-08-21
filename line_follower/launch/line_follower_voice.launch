@@ -1,0 +1,61 @@
+<launch>
+  <!-- 카메라 -->
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
+    <param name="video_device" value="/dev/video0"/>
+    <param name="image_width" value="640"/>
+    <param name="image_height" value="480"/>
+    <param name="framerate" value="30"/>
+    <param name="pixel_format" value="yuyv"/>
+    <param name="io_method" value="mmap"/>
+    <param name="camera_frame_id" value="usb_cam"/>
+  </node>
+
+  <!-- 라인 검출 -->
+  <node pkg="line_follower" type="line_detector.py" name="line_detector" output="screen">
+    <remap from="image_raw" to="/usb_cam/image_raw"/>
+    <param name="invert" value="true"/>
+    <param name="bin_thresh" value="120"/>
+    <param name="min_white_pixels" value="1200"/>
+    <param name="stop_when_lost" value="true"/>
+  </node>
+
+  <!-- 모터 컨트롤러 (BTS7960 안전/저속, 직진25/회전50) -->
+  <node pkg="line_follower" type="motor_controller_bts7960.py" name="motor_controller" output="screen">
+    <param name="right_rpwm" value="18"/>
+    <param name="right_lpwm" value="17"/>
+    <param name="right_ren"  value="22"/>
+    <param name="right_len"  value="27"/>
+    <param name="left_rpwm"  value="12"/>
+    <param name="left_lpwm"  value="6"/>
+    <param name="left_ren"   value="5"/>
+    <param name="left_len"   value="7"/>
+    <param name="invert_left"  value="true"/>   <!-- 필요에 맞게 -->
+    <param name="invert_right" value="true"/>   <!-- 필요에 맞게 -->
+    <param name="pwm_hz" value="1000"/>
+    <param name="min_duty" value="20.0"/>
+    <param name="max_duty" value="60.0"/>
+    <param name="ramp_duty_per_s" value="80.0"/>
+    <param name="angular_gain" value="1.0"/>
+    <param name="safe_timeout" value="0.5"/>
+    <param name="duty_straight" value="25.0"/>
+    <param name="duty_turn" value="50.0"/>
+  </node>
+
+  <!-- 음성 인식 (구글) -->
+  <node pkg="line_follower" type="voice_cmd_google.py" name="voice_cmd" output="screen">
+    <param name="language_code" value="ko-KR"/>
+    <!-- 마이크 인덱스 필요 시 지정 (arecord -l 참고). 미지정이면 기본 장치 -->
+    <!-- <param name="mic_device_index" value="1"/> -->
+  </node>
+
+  <!-- 미션 매니저 (음성+라인로스트 상태머신) -->
+  <node pkg="line_follower" type="mission_manager.py" name="mission_manager" output="screen">
+    <param name="rotate_180_time" value="1.2"/>   <!-- ★ 현장 보정 -->
+    <param name="rotate_speed" value="0.6"/>
+  </node>
+
+  <!-- 디버그 뷰어 (원하면 활성화) -->
+  <!-- <node pkg="image_view" type="image_view" name="debug_view"
+         args="image:=/line_follower/debug _autosize:=true"/> -->
+</launch>
+
