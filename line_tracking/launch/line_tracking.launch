@@ -16,8 +16,12 @@
     <remap from="image_raw" to="/usb_cam/image_raw" />
   </node> -->
   <!-- 직선 전용 라인 디텍터 -->
-  <node pkg="line_tracking" type="line_detector_straight.py" name="line_detector" output="screen">
+  <!-- <node pkg="line_tracking" type="line_detector_straight.py" name="line_detector" output="screen">
     <remap from="image_raw" to="/usb_cam/image_raw"/>
+  </node> -->
+  <node pkg="line_tracking" type="line_detector_steer.py" name="line_detector" output="screen">
+    <remap from="image_raw" to="/usb_cam/image_raw"/>
+    <param name="steer_sign" value="1.0"/>
   </node>
 
   <!-- BTS7960 모터 드라이버 -->

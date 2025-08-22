@@ -41,6 +41,14 @@ class BTS7960DiffDriver:
 
         self.CMD_TIMEOUT = float(rospy.get_param("~cmd_timeout", 0.5))  # 초
 
+        self.TRIM_LEFT   = float(rospy.get_param("~trim_left", 1.00))   # 좌 모터 듀티 배율
+        self.TRIM_RIGHT  = float(rospy.get_param("~trim_right", 1.00))  # 우 모터 듀티 배율
+        self.MIN_DUTY_L  = float(rospy.get_param("~min_duty_left",  self.MIN_DUTY))
+        self.MIN_DUTY_R  = float(rospy.get_param("~min_duty_right", self.MIN_DUTY))
+
+        self.SWAP_SIDES = bool(rospy.get_param("~swap_sides", False))
+
+
         # ===== GPIO 초기화 =====
         GPIO.setmode(GPIO.BCM)
         for pin in (self.RPWM1, self.LPWM1, self.R_EN1, self.L_EN1,
@@ -94,23 +102,19 @@ class BTS7960DiffDriver:
         time.sleep(self.DEADTIME_S)
         p_l.ChangeDutyCycle(duty)
 
-    def _apply_side(self, duty, p_r, p_l, prev_sign_store):
-        """한쪽 모터에 duty(부호 포함)를 안전 적용. prev_sign_store는 참조/갱신용 리스트 [sign]"""
+    def _apply_side(self, duty, p_r, p_l, prev_sign_store, min_duty):
         prev_sign = prev_sign_store[0]
         s = self._sign(duty)
         a = abs(duty)
 
         if s == 0 or a == 0:
-            # 코스트
             self._coast_side(p_r, p_l)
             prev_sign_store[0] = 0
             return
 
-        # 데드존 → 0
-        if a < self.MIN_DUTY:
-            a = self.MIN_DUTY
+        if a < min_duty:
+            a = min_duty
 
-        # 부호가 바뀌면 데드타임 처리
         if prev_sign != 0 and s != prev_sign:
             self._coast_side(p_r, p_l)
             time.sleep(self.DEADTIME_S)
@@ -121,6 +125,7 @@ class BTS7960DiffDriver:
             self._backward_side(p_r, p_l, a)
 
         prev_sign_store[0] = s
+
 
     def _mix(self, lin, ang):
         """Twist → 좌/우 무차원 u(-1~1) → 듀티[%]"""
@@ -159,19 +164,29 @@ class BTS7960DiffDriver:
         now = rospy.get_time()
         # 타임아웃 → 정지(coast)
         if now - self.last_cmd_time > self.CMD_TIMEOUT:
-            self._apply_side(0, self.p_r1, self.p_l1, [self.sign_right])
-            self._apply_side(0, self.p_r2, self.p_l2, [self.sign_left])
+            self._coast_side(self.p_r1, self.p_l1)
+            self._coast_side(self.p_r2, self.p_l2)
             self.sign_right = 0; self.sign_left = 0
             return
 
+
         d_left, d_right = self._mix(self.target_lin, self.target_ang)
+
+        # ★ 좌/우 트림 적용
+        d_left  *= self.TRIM_LEFT
+        d_right *= self.TRIM_RIGHT
 
         # 좌/우 적용 (prev_sign 저장은 리스트로 전달하여 내부에서 갱신받기)
         left_store  = [self.sign_left]
         right_store = [self.sign_right]
 
-        self._apply_side(d_right, self.p_r1, self.p_l1, right_store)  # 오른쪽 모터(모터1)
-        self._apply_side(d_left,  self.p_r2, self.p_l2, left_store)   # 왼쪽 모터(모터2)
+        # swap_sides 옵션 쓰는 분기와 결합해서, 각 측에 맞는 min duty 넘기기
+        if self.SWAP_SIDES:
+            self._apply_side(d_left,  self.p_r1, self.p_l1, left_store,  self.MIN_DUTY_L)
+            self._apply_side(d_right, self.p_r2, self.p_l2, right_store, self.MIN_DUTY_R)
+        else:
+            self._apply_side(d_right, self.p_r1, self.p_l1, right_store, self.MIN_DUTY_R)  # 오른쪽=모터1
+            self._apply_side(d_left,  self.p_r2, self.p_l2, left_store,  self.MIN_DUTY_L)  # 왼쪽=모터2
 
         self.sign_right = right_store[0]
         self.sign_left  = left_store[0]
