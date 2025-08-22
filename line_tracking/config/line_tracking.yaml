@@ -1,0 +1,36 @@
+line_detector:
+  kp: 0.30
+  kd: 0.05
+  base_speed: 0.22
+  bin_thresh: 110
+  invert: true
+  roi_y_start: 0.70
+  roi_height: 0.22
+  min_area: 300
+  min_white_pixels: 300
+  stop_when_lost: true
+  max_omega: 0.6
+  angle_thresh_deg: 85.0
+  err_deadband: 0.02
+  steer_sign: 1.0
+
+bts7960_diff_driver:
+  pins:
+    rpwm_right: 24
+    lpwm_right: 17
+    r_en_right: 22
+    l_en_right: 27
+    rpwm_left: 23
+    lpwm_left: 6
+    r_en_left: 5
+    l_en_left: 18
+  pwm_hz: 1000
+  deadtime_s: 0.005
+  max_duty: 60.0
+  min_duty: 15.0
+  deadzone: 0.02
+  cmd_timeout: 0.5
+  max_linear: 0.5      # m/s 가정치
+  max_angular: 1.5     # rad/s 가정치
+  invert_left: true
+  invert_right: false

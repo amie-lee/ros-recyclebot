@@ -1,0 +1,36 @@
+<launch>
+  <!-- 공통 파라미터 로드 -->
+  <rosparam ns="line_detector"        file="$(find line_tracking)/config/line_tracking.yaml" />
+  <rosparam ns="bts7960_diff_driver"  file="$(find line_tracking)/config/line_tracking.yaml" />
+
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
+    <param name="video_device" value="/dev/video0"/>
+    <param name="image_width" value="640"/>
+    <param name="image_height" value="480"/>
+    <param name="pixel_format" value="yuyv"/>
+    <remap from="image_raw" to="/image_raw"/>
+  </node>
+
+  <!-- 라인 디텍터 -->
+  <!-- <node pkg="line_tracking" type="line_detector.py" name="line_detector" output="screen">
+    <remap from="image_raw" to="/usb_cam/image_raw" />
+  </node> -->
+  <!-- 직선 전용 라인 디텍터 -->
+  <node pkg="line_tracking" type="line_detector_straight.py" name="line_detector" output="screen">
+    <remap from="image_raw" to="/usb_cam/image_raw"/>
+  </node>
+
+  <!-- BTS7960 모터 드라이버 -->
+  <node pkg="line_tracking" type="motor_bts7960.py" name="bts7960_diff_driver" output="screen"/>
+
+  <!-- 디버그 뷰어 자동 실행 -->
+  <!-- <node pkg="rqt_image_view" type="rqt_image_view" name="line_debug_view" output="screen">
+    <remap from="image" to="/line_follower/debug"/>
+  </node> -->
+  <!-- <node pkg="rqt_image_view" type="rqt_image_view" name="line_panel_view" output="screen">
+    <remap from="image" to="/line_follower/panel"/>
+  </node> -->
+  <node pkg="rqt_image_view" type="rqt_image_view" name="line_panel_view" output="screen">
+    <remap from="image" to="/line_follower/panel"/>
+  </node>
+</launch>

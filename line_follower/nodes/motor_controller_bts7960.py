@@ -6,8 +6,8 @@ BTS7960 dual H-bridge 안전 컨트롤러 (ROS1 /cmd_vel 구독)
 - 듀티 정책: 직진( |v| >= |w| ) → 최대 25%, 회전( |w| > |v| ) → 최대 50%
 - 입력: geometry_msgs/Twist (/cmd_vel)  linear.x, angular.z ∈ [-1, 1]
 - 핀(BCM) 기본:
-    Right (모터1): RPWM=20, LPWM=21, R_EN=23, L_EN=24
-    Left  (모터2): RPWM=5,  LPWM=6,  R_EN=17, L_EN=27
+    Right (모터1): RPWM=24, LPWM=17, R_EN=22, L_EN=27
+    Left  (모터2): RPWM=23,  LPWM=6,  R_EN=5, L_EN=7
 """
 
 import time
@@ -25,7 +25,7 @@ def clamp(x, lo, hi):
 class Side:
     """한쪽 바퀴(R/L)의 BTS7960 듀얼 PWM 제어"""
     def __init__(self, name, rpwm, lpwm, ren, len_, pwm_hz,
-                 min_duty, max_duty, deadtime_s, coast_gap_s, invert=False):
+                 min_duty, max_duty, deadtime_s, coast_gap_s, invert=False, forward_with='lpwm'):
         self.name = name
         self.rpwm_pin = rpwm
         self.lpwm_pin = lpwm
@@ -36,6 +36,7 @@ class Side:
         self.deadtime_s = float(deadtime_s)
         self.coast_gap_s = float(coast_gap_s)
         self.invert = invert
+        self.forward_with = forward_with.lower()
 
         GPIO.setup(self.rpwm_pin, GPIO.OUT, initial=GPIO.LOW)
         GPIO.setup(self.lpwm_pin, GPIO.OUT, initial=GPIO.LOW)
@@ -70,25 +71,47 @@ class Side:
         direction = 0
         if value_norm > 1e-6: direction = +1
         elif value_norm < -1e-6: direction = -1
+
         duty = abs(value_norm) * self.max_duty
         if duty > 0 and duty < self.min_duty:
             duty = self.min_duty
 
         with self._lock:
             # 방향 바뀌면 코스트 + 데드타임
-            if direction != 0 and direction != self.cur_dir and (self.cur_duty > 0 or self.cur_dir != 0):
+            #if direction != 0 and direction != self.cur_dir and (self.cur_duty > 0 or self.cur_dir != 0):
+            if direction != 0 and direction != self.cur_dir and (self.cur_duty > 0 or self.cur_dir != 0):    
                 self._apply_coast()
                 time.sleep(self.coast_gap_s)
                 time.sleep(self.deadtime_s)
 
-            if direction >= 0:
-                # 전진: RPWM만 듀티, LPWM=0
-                self.p_l.ChangeDutyCycle(0)
-                self.p_r.ChangeDutyCycle(duty if direction != 0 else 0)
+            # if direction >= 0:
+            #     # 전진: RPWM만 듀티, LPWM=0
+            #     self.p_l.ChangeDutyCycle(0)
+            #     self.p_r.ChangeDutyCycle(duty if direction != 0 else 0)
+            # else:
+            #     # 후진: LPWM만 듀티, RPWM=0
+            #     self.p_r.ChangeDutyCycle(0)
+            #     self.p_l.ChangeDutyCycle(duty)
+
+            # === 전/후진에 사용하는 채널 선택 ===
+            if direction == 0:
+                self._apply_coast()
+            elif direction > 0:
+                # 전진
+                if self.forward_with == 'rpwm':
+                    self.p_l.ChangeDutyCycle(0)
+                    self.p_r.ChangeDutyCycle(duty)
+                else:  # 'lpwm' (테스트 코드와 동일 동작)
+                    self.p_r.ChangeDutyCycle(0)
+                    self.p_l.ChangeDutyCycle(duty)
             else:
-                # 후진: LPWM만 듀티, RPWM=0
-                self.p_r.ChangeDutyCycle(0)
-                self.p_l.ChangeDutyCycle(duty)
+                # 후진
+                if self.forward_with == 'rpwm':
+                    self.p_r.ChangeDutyCycle(0)
+                    self.p_l.ChangeDutyCycle(duty)
+                else:  # 'lpwm'
+                    self.p_l.ChangeDutyCycle(0)
+                    self.p_r.ChangeDutyCycle(duty)
 
             self.cur_dir = direction
             self.cur_duty = duty if direction != 0 else 0.0
@@ -135,16 +158,22 @@ class MotorController:
         self.DUTY_STRAIGHT = rospy.get_param("~duty_straight", 25.0)  # 직진
         self.DUTY_TURN     = rospy.get_param("~duty_turn", 50.0)      # 회전
 
+        # 전진 채널 설정
+        self.RIGHT_FORWARD_WITH = rospy.get_param("~right_forward_with", "lpwm")
+        self.LEFT_FORWARD_WITH  = rospy.get_param("~left_forward_with",  "lpwm")
+
         # GPIO
         GPIO.setmode(GPIO.BCM)
 
         # 바퀴 객체
         self.right = Side("right", self.RPWM1, self.LPWM1, self.R_EN1, self.L_EN1,
                           self.PWM_HZ, self.MIN_DUTY, self.MAX_DUTY,
-                          self.DEADTIME_S, self.COAST_GAP_S, invert=self.INVERT_RIGHT)
+                          self.DEADTIME_S, self.COAST_GAP_S, invert=self.INVERT_RIGHT,
+                          forward_with=self.RIGHT_FORWARD_WITH)
         self.left  = Side("left",  self.RPWM2, self.LPWM2, self.R_EN2, self.L_EN2,
                           self.PWM_HZ, self.MIN_DUTY, self.MAX_DUTY,
-                          self.DEADTIME_S, self.COAST_GAP_S, invert=self.INVERT_LEFT)
+                          self.DEADTIME_S, self.COAST_GAP_S, invert=self.INVERT_LEFT,
+                          forward_with=self.LEFT_FORWARD_WITH)
 
         # 목표/현재 (정규화 -1..1)
         self._tgt_l = 0.0

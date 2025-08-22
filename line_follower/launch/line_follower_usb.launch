@@ -40,7 +40,9 @@
     <param name="ramp_duty_per_s" value="80.0"/>
     <param name="safe_timeout" value="0.5"/>
     <param name="invert_left" value="false"/>
-    <param name="invert_right" value="true"/>
+    <param name="invert_right" value="false"/>
+    <param name="right_forward_with" value="lpwm"/>
+    <param name="left_forward_with"  value="lpwm"/>
 
     <!-- 요청 사양: 직진 25%, 회전 50% -->
     <param name="duty_straight" value="25.0"/>
