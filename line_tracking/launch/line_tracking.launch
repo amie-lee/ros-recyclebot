@@ -19,9 +19,15 @@
   <!-- <node pkg="line_tracking" type="line_detector_straight.py" name="line_detector" output="screen">
     <remap from="image_raw" to="/usb_cam/image_raw"/>
   </node> -->
-  <node pkg="line_tracking" type="line_detector_steer.py" name="line_detector" output="screen">
+  <!-- <node pkg="line_tracking" type="line_detector_steer.py" name="line_detector" output="screen">
     <remap from="image_raw" to="/usb_cam/image_raw"/>
     <param name="steer_sign" value="1.0"/>
+  </node> -->
+  <node pkg="line_tracking" type="line_detector_curve.py" name="line_detector" output="screen">
+    <remap from="image_raw" to="/usb_cam/image_raw"/>
+    <param name="steer_sign" value="1.0"/>
+    <!-- 빛이 자주 바뀌면 적응형 사용 -->
+    <!-- <param name="use_adaptive" value="true"/> -->
   </node>
 
   <!-- BTS7960 모터 드라이버 -->

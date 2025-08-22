@@ -48,6 +48,8 @@ class BTS7960DiffDriver:
 
         self.SWAP_SIDES = bool(rospy.get_param("~swap_sides", False))
 
+        self.TURN_MIN_DELTA = float(rospy.get_param("~turn_min_delta", 6.0))  # [%] 4~10 권장
+
 
         # ===== GPIO 초기화 =====
         GPIO.setmode(GPIO.BCM)
@@ -171,6 +173,20 @@ class BTS7960DiffDriver:
 
 
         d_left, d_right = self._mix(self.target_lin, self.target_ang)
+
+        # ★ 좌/우 듀티 차이가 너무 작으면, 회전 방향으로 강제로 벌려줌
+        s_ang = 0 if abs(self.target_ang) < 1e-6 else (1 if self.target_ang > 0 else -1)
+        if s_ang != 0:
+            delta = abs(d_left - d_right)
+            if delta < self.TURN_MIN_DELTA:
+                adj = 0.5 * (self.TURN_MIN_DELTA - delta)
+                if s_ang > 0:   # 좌회전: 왼쪽↓, 오른쪽↑
+                    d_left  -= adj
+                    d_right += adj
+                else:           # 우회전: 왼쪽↑, 오른쪽↓
+                    d_left  += adj
+                    d_right -= adj
+
 
         # ★ 좌/우 트림 적용
         d_left  *= self.TRIM_LEFT
