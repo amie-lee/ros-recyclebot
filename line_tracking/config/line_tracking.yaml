@@ -1,26 +1,31 @@
 line_detector:
-  kp: 0.24
+  kp: 0.30
   kd: 0.06
-  kh: 0.45
+  kh: 0.55
   base_speed: 0.12
   min_speed: 0.10
   bin_thresh: 110
   invert: true
   roi_y_start: 0.70
-  roi_height: 0.22
+  roi_height: 0.2
   min_area: 300
   min_white_pixels: 300
   stop_when_lost: true
-  max_omega: 0.55
+  max_omega: 0.90
   angle_thresh_deg: 85.0
-  err_deadband: 0.03
-  ema_alpha: 0.35
+  err_deadband: 0.01
+  ema_alpha: 0.50
   use_adaptive: true
   search_omega: 0.3
   search_ms: 600
   use_lookahead: true
   lookahead_gap: 0.4
-  
+  omega_rate_limit: 4.0
+  center_shift_frac: 0.1
+  turn_gain_left: 1.00
+  turn_gain_right: 1.00
+  omega_scale_min: 0.55
+  omega_scale_gamma: 1.0
 
 bts7960_diff_driver:
   pins:
@@ -36,13 +41,14 @@ bts7960_diff_driver:
   deadtime_s: 0.01
   max_duty: 35
   min_duty: 15.0
-  deadzone: 0.02
+  deadzone: 0.01
   cmd_timeout: 0.5
   max_linear: 0.5      # m/s 가정치
-  max_angular: 2.0     # rad/s 가정치
-  invert_left: true
+  max_angular: 2.2     # rad/s 가정치
+  invert_left: false
   invert_right: false
   trim_left:  1.00
   trim_right: 1.00    # ← 우측이 빠르면 0.95 ~ 0.85 범위에서 시작
   min_duty_left:  14.0 # 좌측 출발이 굼뜨면 약간 올림
   min_duty_right: 14.0
+  turn_min_delta: 9.0

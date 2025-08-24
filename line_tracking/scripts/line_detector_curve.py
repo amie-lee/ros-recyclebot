@@ -15,6 +15,7 @@ class LineDetectorCurve:
       - 헤딩 오차 클수록 자동 감속
       - 잠깐 놓치면 짧게 재탐색(스캔)
       - 작은 오차일수록 조향 약화(스케일링) + 조향 변화율 제한(슬루)
+      - ★ 보강: center_shift_frac(가상 중앙 이동), turn_gain_left/right(좌우 비대칭 증폭)
     """
 
     def __init__(self):
@@ -26,7 +27,7 @@ class LineDetectorCurve:
         self.kh = rospy.get_param("~kh", 0.35)         # 헤딩 오차 비례
         self.ema_alpha = rospy.get_param("~ema_alpha", 0.35)
         self.err_deadband = rospy.get_param("~err_deadband", 0.03)
-        self.steer_sign = rospy.get_param("~steer_sign", -1.0)  # 조향 부호(반대면 1.0)
+        self.steer_sign = rospy.get_param("~steer_sign", -1.0)  # 조향 부호(환경에 따라 ±1.0)
 
         # === 속도/제한 ===
         self.base_speed = rospy.get_param("~base_speed", 0.18)
@@ -60,6 +61,13 @@ class LineDetectorCurve:
         self.search_omega = rospy.get_param("~search_omega", 0.3)
         self.search_ms    = rospy.get_param("~search_ms", 600)
 
+        # ====== ★ 추가 보강 파라미터 ======
+        # 화면 폭 대비 중앙 이동 비율(음수면 중앙을 왼쪽으로 이동 → 좌회전 더 민감)
+        self.center_shift_frac = rospy.get_param("~center_shift_frac", 0.0)   # 예: -0.04
+        # 좌/우 회전 비대칭 증폭(좌회전이 약하면 left > 1.0)
+        self.turn_gain_left  = rospy.get_param("~turn_gain_left", 1.00)       # 예: 1.15 ~ 1.25
+        self.turn_gain_right = rospy.get_param("~turn_gain_right", 1.00)
+
         # 통신
         self.bridge = CvBridge()
         self.pub_cmd = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
@@ -75,7 +83,7 @@ class LineDetectorCurve:
         self.last_found_ts = 0.0
         self.scan_dir = 1
 
-        rospy.loginfo("line_detector_curve (reinforced) started")
+        rospy.loginfo("line_detector_curve (reinforced + center/turn-gain) started")
 
     # --- 유틸 ---
     def _binarize(self, roi_gray):
@@ -135,8 +143,11 @@ class LineDetectorCurve:
                     M = cv2.moments(c)
                     if M["m00"] != 0:
                         cx = int(M["m10"]/M["m00"])
+
                         # === 가로 오차 ===
-                        err = (cx - (w/2.0)) / (w/2.0)
+                        # ★ 가상 중앙 이동 적용
+                        center_x = (w / 2.0) * (1.0 + self.center_shift_frac)
+                        err = (cx - center_x) / (w / 2.0)
                         if abs(err) < self.err_deadband:
                             err = 0.0
 
@@ -174,8 +185,20 @@ class LineDetectorCurve:
                         ang_deg = self._combine_heading(ang_deg_main, ang_deg_look)
                         ang_rad = np.radians(ang_deg if ang_deg is not None else 0.0)
 
+                        sign_e = 0.0 if self.err_filt == 0 else (1.0 if self.err_filt > 0 else -1.0)
+                        ang_term = sign_e * ang_rad
+
                         # 원시 조향
-                        omega = self.steer_sign * (self.kp*self.err_filt + self.kd*de + self.kh*ang_rad)
+                        base = (self.kp*self.err_filt + self.kd*de + self.kh*ang_term)
+                        omega = self.steer_sign * base
+
+                        # ★ 좌/우 비대칭 증폭 (ROS 규약: +z = 좌회전)
+                        turn_dir = 1 if (self.steer_sign * base) > 0 else (-1 if (self.steer_sign * base) < 0 else 0)
+                        if turn_dir > 0:      # 좌회전
+                            omega *= float(self.turn_gain_left)
+                        elif turn_dir < 0:    # 우회전
+                            omega *= float(self.turn_gain_right)
+
                         omega = clamp(omega, -self.max_omega, self.max_omega)
 
                         # (보강1) 작은 오차일 때 조향 약화
