@@ -34,7 +34,7 @@
     <param name="mic_rate" value="16000"/>
     <param name="block_ms"  value="100"/>
     <param name="channels"  value="1"/>
-    <!-- <param name="mic_device" value="2"/> -->
+    <param name="mic_device" value="2"/>
   </node>
 
   <!-- BTS7960 모터 드라이버 -->

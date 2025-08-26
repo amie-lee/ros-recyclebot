@@ -6,7 +6,7 @@ import rospy
 from std_msgs.msg import String
 
 # ================= 사용자 설정 =================
-SERVO_GPIO = 18          # PWM 가능한 BCM 핀: 12, 13, 18, 19 권장
+SERVO_GPIO = 12          # PWM 가능한 BCM 핀: 12, 13, 18, 19 권장
 NEUTRAL_DEG = 90
 PLASTIC_DEG = 0
 CAN_DEG = 180
