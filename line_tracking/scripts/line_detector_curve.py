@@ -5,6 +5,7 @@ import rospy, cv2, numpy as np
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge
+from std_msgs.msg import Bool
 
 def clamp(x, lo, hi): return lo if x < lo else (hi if x > hi else x)
 
@@ -70,9 +71,10 @@ class LineDetectorCurve:
 
         # 통신
         self.bridge = CvBridge()
-        self.pub_cmd = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
+        self.pub_cmd = rospy.Publisher("line_tracker/cmd_vel", Twist, queue_size=1)
         self.pub_panel = rospy.Publisher("/line_follower/panel", Image, queue_size=1)
         self.pub_overlay = rospy.Publisher("/line_follower/overlay", Image, queue_size=1)
+        self.pub_found = rospy.Publisher("/line_follower/found", Bool, queue_size=1)
         rospy.Subscriber("image_raw", Image, self.cb, queue_size=1)  # 런치에서 /usb_cam/image_raw 로 리맵
 
         # 상태
@@ -222,6 +224,7 @@ class LineDetectorCurve:
 
                         t = Twist(); t.linear.x = float(v); t.angular.z = float(omega)
                         self.pub_cmd.publish(t)
+                        self.pub_found.publish(Bool(data=True))
                         moved = True
                         self.last_found_ts = now
 
@@ -243,8 +246,10 @@ class LineDetectorCurve:
                 t.angular.z = self.steer_sign * (self.search_omega * self.scan_dir)
                 t.linear.x = 0.0
                 self.pub_cmd.publish(t)
+                self.pub_found.publish(Bool(data=False))
             else:
                 self._publish_stop()
+                self.pub_found.publish(Bool(data=False))
                 self.scan_dir *= -1  # 다음엔 반대쪽 스캔
 
         # 패널

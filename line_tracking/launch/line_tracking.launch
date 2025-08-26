@@ -12,17 +12,6 @@
   </node>
 
   <!-- 라인 디텍터 -->
-  <!-- <node pkg="line_tracking" type="line_detector.py" name="line_detector" output="screen">
-    <remap from="image_raw" to="/usb_cam/image_raw" />
-  </node> -->
-  <!-- 직선 전용 라인 디텍터 -->
-  <!-- <node pkg="line_tracking" type="line_detector_straight.py" name="line_detector" output="screen">
-    <remap from="image_raw" to="/usb_cam/image_raw"/>
-  </node> -->
-  <!-- <node pkg="line_tracking" type="line_detector_steer.py" name="line_detector" output="screen">
-    <remap from="image_raw" to="/usb_cam/image_raw"/>
-    <param name="steer_sign" value="1.0"/>
-  </node> -->
   <node pkg="line_tracking" type="line_detector_curve.py" name="line_detector" output="screen">
     <remap from="image_raw" to="/usb_cam/image_raw"/>
     <param name="steer_sign" value="1.0"/>
@@ -30,16 +19,28 @@
     <!-- <param name="use_adaptive" value="true"/> -->
   </node>
 
+  <!-- 음성 게이트: line_tracker/cmd_vel -> cmd_vel -->
+  <node pkg="line_tracking" type="voice_cmd_gate.py" name="voice_cmd_gate" output="screen">
+    <param name="keyword_start" value="가자"/>
+    <param name="keyword_stop"  value="멈춰"/>
+    <param name="keyword_turn_around" value="돌아"/>
+    <param name="line_lost_timeout" value="1.0"/>
+
+    <!-- 회전 파라미터: 현장 캘리브레이션 필수 -->
+    <param name="turn180_dir" value="left"/>
+    <param name="turn180_omega" value="0.7"/>
+    <param name="turn180_duration" value="7.5"/> 
+
+    <param name="mic_rate" value="16000"/>
+    <param name="block_ms"  value="100"/>
+    <param name="channels"  value="1"/>
+    <!-- <param name="mic_device" value="2"/> -->
+  </node>
+
   <!-- BTS7960 모터 드라이버 -->
   <node pkg="line_tracking" type="motor_bts7960.py" name="bts7960_diff_driver" output="screen"/>
 
   <!-- 디버그 뷰어 자동 실행 -->
-  <!-- <node pkg="rqt_image_view" type="rqt_image_view" name="line_debug_view" output="screen">
-    <remap from="image" to="/line_follower/debug"/>
-  </node> -->
-  <!-- <node pkg="rqt_image_view" type="rqt_image_view" name="line_panel_view" output="screen">
-    <remap from="image" to="/line_follower/panel"/>
-  </node> -->
   <node pkg="rqt_image_view" type="rqt_image_view" name="line_panel_view" output="screen">
     <remap from="image" to="/line_follower/panel"/>
   </node>
