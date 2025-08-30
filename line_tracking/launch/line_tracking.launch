@@ -3,10 +3,13 @@
   <rosparam ns="line_detector"        file="$(find line_tracking)/config/line_tracking.yaml" />
   <rosparam ns="bts7960_diff_driver"  file="$(find line_tracking)/config/line_tracking.yaml" />
 
+  <include file="$(find recyclebot_bringup)/launch/audio_capture.launch" />
+
   <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
     <param name="video_device" value="/dev/video0"/>
-    <param name="image_width" value="640"/>
-    <param name="image_height" value="480"/>
+    <param name="image_width" value="320"/>
+    <param name="image_height" value="240"/>
+    <param name="framerate"   value="15"/>
     <param name="pixel_format" value="yuyv"/>
     <remap from="image_raw" to="/image_raw"/>
   </node>
@@ -20,7 +23,7 @@
   </node>
 
   <!-- 음성 게이트: line_tracker/cmd_vel -> cmd_vel -->
-  <node pkg="line_tracking" type="voice_cmd_gate.py" name="voice_cmd_gate" output="screen">
+  <node pkg="line_tracking" type="voice_cmd_gate_ext.py" name="voice_cmd_gate" output="screen">
     <param name="keyword_start" value="가자"/>
     <param name="keyword_stop"  value="멈춰"/>
     <param name="keyword_turn_around" value="돌아"/>
@@ -31,10 +34,10 @@
     <param name="turn180_omega" value="0.7"/>
     <param name="turn180_duration" value="7.5"/> 
 
-    <param name="mic_rate" value="16000"/>
+    <!-- <param name="mic_rate" value="16000"/>
     <param name="block_ms"  value="100"/>
     <param name="channels"  value="1"/>
-    <param name="mic_device" value="2"/>
+    <param name="mic_device" value="2"/> -->
   </node>
 
   <!-- BTS7960 모터 드라이버 -->
@@ -43,5 +46,12 @@
   <!-- 디버그 뷰어 자동 실행 -->
   <node pkg="rqt_image_view" type="rqt_image_view" name="line_panel_view" output="screen">
     <remap from="image" to="/line_follower/panel"/>
+  </node>
+
+  <node pkg="trash_sorter" type="speech_kws_google.py" name="kws_line"
+        output="screen" required="false">
+    <param name="use_audio_topic" value="true"/>
+    <param name="audio_topic" value="/audio/raw"/>
+    <param name="topic_rate" value="44100"/>
   </node>
 </launch>
