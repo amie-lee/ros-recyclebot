@@ -31,8 +31,8 @@
 
     <!-- 회전 파라미터: 현장 캘리브레이션 필수 -->
     <param name="turn180_dir" value="left"/>
-    <param name="turn180_omega" value="0.7"/>
-    <param name="turn180_duration" value="7.5"/> 
+    <param name="turn180_omega" value="1.0"/>
+    <param name="turn180_duration" value="4"/> 
 
     <!-- <param name="mic_rate" value="16000"/>
     <param name="block_ms"  value="100"/>

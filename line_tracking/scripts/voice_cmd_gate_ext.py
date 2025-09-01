@@ -105,7 +105,7 @@ class Gate(object):
         # 정지 한번 내보내고, 원래 게이트 상태 복원
         self.pub.publish(Twist())
         with self.lock:
-            self.on = was_on
+            self.on = False
 
 def main():
     rospy.init_node("voice_cmd_gate_ext")
