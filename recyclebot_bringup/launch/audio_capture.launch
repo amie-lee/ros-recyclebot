@@ -1,7 +1,7 @@
 <launch>
   <!-- 환경에 맞게 device_index 조정. -1이면 기본 입력 -->
   <node pkg="recyclebot_bringup" type="sd_audio_capture.py" name="sd_audio_capture" output="screen">
-    <param name="device_index" value="2"/>
+    <param name="device_index" value="1"/>
     <param name="sample_rate"  value="44100"/>
     <param name="channels"     value="1"/>
     <param name="block_ms"     value="20"/>
