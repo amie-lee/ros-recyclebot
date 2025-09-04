@@ -11,7 +11,7 @@ except Exception:
 
 # ====== 오디오/장치 ======
 LANG_CODE    = "ko-KR"
-DEVICE_INDEX = 1          # ← 사용 중인 마이크 인덱스
+DEVICE_INDEX = 1           # ← 사용 중인 마이크 인덱스
 CHANNELS     = 1
 
 # ====== 퍼블리시 튜닝 ======
